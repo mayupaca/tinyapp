@@ -22,6 +22,10 @@ const generateRandomString = function () {
   return randStr;
 };
 
+// app.post("/urls/:id", (req, res) => {
+//   res.redirect("/urls_show");
+// });
+
 app.post("/urls/:shortURL/delete", (req, res) => {
   const shortURL = req.params.shortURL;
   delete urlDatabase[shortURL];
@@ -32,7 +36,7 @@ app.post("/urls", (req, res) => {
   const shortURL = generateRandomString();
   const longURL = req.body.longURL;
   urlDatabase[shortURL] = longURL;
-  console.log("urls req.body", req.body); // Log the POST request body to the console
+  console.log(req.body); // Log the POST request body to the console
   res.redirect("/urls"); // Respond with 'Ok' (we will replace this)
 });
 
@@ -54,14 +58,6 @@ app.get("/u/:shortURL", (req, res) => {
   const longURL = urlDatabase[req.params.shortURL];
   console.log(req.params);
   res.redirect(longURL);
-});
-
-app.get("/", (req, res) => {
-  res.send("Hello!");
-});
-
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
 app.get("/urls.json", (req, res) => {
