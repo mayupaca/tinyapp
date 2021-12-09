@@ -24,8 +24,14 @@ const users = {
 
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com",
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW",
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW",
+  },
 };
 // Get rundom 6 characters
 const generateRandomString = function () {
@@ -39,7 +45,7 @@ const generateRandomString = function () {
 
 app.get("/urls", (req, res) => {
   const templateVars = {
-  user: users[req.cookies["user_id"]],
+    user: users[req.cookies["user_id"]],
     urls: urlDatabase,
   };
   console.log(req.cookies["user_id"])
@@ -119,9 +125,14 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  const shortURL = generateRandomString();
+  const userID = req.cookies["user_id"],
+  shortURL = generateRandomString();
   const longURL = req.body.longURL;
-  urlDatabase[shortURL] = longURL;
+  urlDatabase[shortURL] = {
+    longURL: longURL,
+    userID: userID
+  };
+  console.log(urlDatabase[shortURL]);
   console.log(req.body); // Log the POST request body to the console
   res.redirect("/urls"); // Respond with 'Ok' (we will replace this)
 });
@@ -155,6 +166,16 @@ app.get("/urls/:shortURL", (req, res) => {
   };
   res.render("urls_show", templateVars);
 });
+
+app.get("/urls", (req, res) => {
+  if (!users[userID].email) {
+    return res.send("You need to log in or register.");
+  }
+});
+
+const urlsForUser = function(id) {
+
+};
 
 app.get("/u/:shortURL", (req, res) => {
   const longURL = urlDatabase[req.params.shortURL];
