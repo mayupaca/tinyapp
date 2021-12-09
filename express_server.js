@@ -36,7 +36,7 @@ const generateRandomString = function () {
   }
   return randStr;
 };
-// Pass in the username to all views
+
 app.get("/urls", (req, res) => {
   const templateVars = {
   user: users[req.cookies["user_id"]],
@@ -56,10 +56,59 @@ app.post("/register", (req, res) => {
     email: email,
     password: password,
   };
+  
+  if (!email || !password) {
+    return res.status(400).send("email and password cannot be blank");
+  }
+  
+  const findExistingUser = function(email) {
+    for (const user in users) {
+      console.log(users[user]);
+      if (users[user].email === email) {
+        return user;
+      }
+    }
+  };
+  
+  if (findExistingUser(email)) {
+    return res.status(400).send("a user with that email already exists");
+  }
+  
   users[newUserId] = user;
-  // users[id].id
   res.cookie("user_id", newUserId);
   console.log(users[newUserId]);
+  res.redirect("/urls");
+});
+// users[id].id  => access users[id] value
+app.post('/login', (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password; 
+
+  const findExistingUser = function (email) {
+    for (const user in users) {
+      console.log(users[user]);
+      if (users[user].email === email) {
+        return users[user];
+      }
+    }
+  };
+  const user = findExistingUser(email);
+
+  if (!user) {
+    return res.status(403).send("a user with that email doesn't exist");
+  }
+
+  if (user.password !== password) {
+    return res.status(403).send("your password doesn't match");
+  }
+
+  res.cookie("user_id", user.id);
+  res.redirect("/urls");
+  console.log(req.body)
+});
+
+app.post("/logout", (req, res) => {
+  res.clearCookie("user_id");
   res.redirect("/urls");
 });
 
@@ -77,23 +126,18 @@ app.post("/urls", (req, res) => {
   res.redirect("/urls"); // Respond with 'Ok' (we will replace this)
 });
 
-app.post('/login', (req, res) => {
-  const username = req.body.username;
-  res.cookie("username", username);
-  res.redirect("/urls");
-  console.log(req.body)
-});
-
-app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
-  res.redirect("/urls");
-});
-
 app.get("/register", (req, res) => {
   const templateVars = {
     user: users[req.cookies["user_id"]],
   };
   res.render("urls_registration", templateVars);
+});
+
+app.get("/login", (req, res) => {
+  const templateVars = {
+    user: users[req.cookies["user_id"]],
+  };
+  res.render("urls_login", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
