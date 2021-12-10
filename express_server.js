@@ -7,9 +7,14 @@ app.set("view engine", "ejs");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const bcrypt = require("bcryptjs");
+const cookieSession = require("cookie-session");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-
+// app.use(cookieSession({
+//   name: "session",
+//   key: ["I like cats", "Also dog"]
+// })
+// );
 
 const users = {
   "userRandomID": {
