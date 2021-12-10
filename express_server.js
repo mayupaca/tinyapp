@@ -44,12 +44,17 @@ const generateRandomString = function () {
 };
 
 app.get("/urls", (req, res) => {
+  const user = req.cookies.user_id;
+  if (!user) {
+    return res.status(400).send("Please create an account or login");
+  }
   const templateVars = {
     user: users[req.cookies["user_id"]],
     urls: urlDatabase,
   };
   console.log(req.cookies["user_id"])
   console.log(users)
+  console.log(urlDatabase)
   res.render("urls_index", templateVars);
 });
 
@@ -100,6 +105,8 @@ app.post('/login', (req, res) => {
   };
   const user = findExistingUser(email);
 
+  console.log(user);
+
   if (!user) {
     return res.status(403).send("a user with that email doesn't exist");
   }
@@ -118,9 +125,26 @@ app.post("/logout", (req, res) => {
   res.redirect("/urls");
 });
 
+const urlsForUser = function (id) {
+  const userURL = {};
+  for (let shortURL in urlDatabase) {
+    if (urlDatabase[shortURL].userID === id) {
+      userURL[shortURL] = urlDatabase[shortURL];
+    }
+  }
+  return userURL;
+};
+
 app.post("/urls/:shortURL/delete", (req, res) => {
   const shortURL = req.params.shortURL;
-  delete urlDatabase[shortURL];
+  const userID = res.cookies["user_id"];
+  const urlsOfUser =
+  urlDatabase[shortURL] && urlDatabase[shortURL].userID === userID;
+  if (!urlsOfUser) {
+    return res.status(400).send("You are not user. You can not delete.");
+  } else {
+    delete urlDatabase[shortURL];
+  }
   res.redirect("/urls");
 });
 
@@ -159,23 +183,25 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
+  const userID = res.cookies["user_id"];
+  const shortURL = req.params.shortURL;
+  const urlsOfUser =
+    urlDatabase[shortURL] && urlDatabase[shortURL].userID === userID;
+  if (!userID) {
+    return res.status(400).send("You are not logged in.");
+  }
+  if (!urlsOfUser) {
+    return res.status(400).send("No matching URL found.");
+  }
   const templateVars = {
-    user: users[req.cookies["user_id"]],
-    shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL]
+    user: users[userID],
+    shortURL,
+    longURL: urlDatabase[shortURL],
   };
   res.render("urls_show", templateVars);
 });
 
-app.get("/urls", (req, res) => {
-  if (!users[userID].email) {
-    return res.send("You need to log in or register.");
-  }
-});
-
-const urlsForUser = function(id) {
-
-};
+//delete urlDatabase[shortURL]
 
 app.get("/u/:shortURL", (req, res) => {
   const longURL = urlDatabase[req.params.shortURL];
