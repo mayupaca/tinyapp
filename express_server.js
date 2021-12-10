@@ -4,29 +4,32 @@ const PORT = 8080; // default port 8080
 // "view engine" プロパティはどのテンプレートエンジンを使うかの指定を行うプロパティ
 app.set("view engine", "ejs");
 
+require("dotenv").config();
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const bcrypt = require("bcryptjs");
 const cookieSession = require("cookie-session");
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-// app.use(cookieSession({
-//   name: "session",
-//   key: ["I like cats", "Also dog"]
-// })
-// );
+app.use(cookieSession({
+  name: "session",
+  keys: ["I love cats.", "I also love dogs."]
+}))
+
+const salt = bcrypt.genSaltSync(10);
 
 const users = {
-  "userRandomID": {
+  userRandomID: {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur"
+    password: bcrypt.hashSync(process.env.USER_RANDOM_ID, salt),
   },
-  "user2RandomID": {
-    id: "user2RandomID", 
-    email: "user2@example.com", 
-    password: "dishwasher-funk"
-  }
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: bcrypt.hashSync(process.env.USER_RANDOM2_ID, salt),
+  },
 };
 
 const urlDatabase = {
@@ -49,16 +52,20 @@ const generateRandomString = function () {
   return randStr;
 };
 
+app.get("/dashboard", (req, res) => {
+  res.json(users);
+});
+
 app.get("/urls", (req, res) => {
-  const user = req.cookies.user_id;
+  const user = req.session.user_id;
   if (!user) {
     return res.status(400).send("Please create an account or login");
   }
   const templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: users[req.session["user_id"]],
     urls: urlDatabase,
   };
-  console.log(req.cookies["user_id"])
+  console.log(req.session["user_id"])
   console.log(users)
   console.log(urlDatabase)
   res.render("urls_index", templateVars);
@@ -92,7 +99,7 @@ app.post("/register", (req, res) => {
   }
   
   users[newUserId] = user;
-  res.cookie("user_id", newUserId);
+  req.session.user_id = newUserId;
   console.log(users[newUserId]);
   res.redirect("/urls");
 });
@@ -116,12 +123,12 @@ app.post('/login', (req, res) => {
   if (!user) {
     return res.status(403).send("a user with that email doesn't exist");
   }
-
-  if (user.password !== password) {
+  
+  if (!bcrypt.compareSync(password, user.password)) {
     return res.status(403).send("your password doesn't match");
   }
 
-  res.cookie("user_id", user.id);
+  req.session.user_id = user.id;
   res.redirect("/urls");
   console.log(req.body)
 });
@@ -142,20 +149,12 @@ const urlsForUser = function (id) {
 };
 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const shortURL = req.params.shortURL;
-  const userID = res.cookies["user_id"];
-  const urlsOfUser =
-  urlDatabase[shortURL] && urlDatabase[shortURL].userID === userID;
-  if (!urlsOfUser) {
-    return res.status(400).send("You are not user. You can not delete.");
-  } else {
-    delete urlDatabase[shortURL];
-  }
+  delete urlDatabase[shortURL];
   res.redirect("/urls");
 });
 
 app.post("/urls", (req, res) => {
-  const userID = req.cookies["user_id"],
+  const userID = req.session["user_id"],
   shortURL = generateRandomString();
   const longURL = req.body.longURL;
   urlDatabase[shortURL] = {
@@ -169,27 +168,27 @@ app.post("/urls", (req, res) => {
 
 app.get("/register", (req, res) => {
   const templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: users[req.session["user_id"]],
   };
   res.render("urls_registration", templateVars);
 });
 
 app.get("/login", (req, res) => {
   const templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: users[req.session["user_id"]],
   };
   res.render("urls_login", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
   const templateVars = {
-    user: users[req.cookies["user_id"]],
+    user: users[req.session["user_id"]],
   }
   res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  const userID = res.cookies["user_id"];
+  const userID = req.session.user_id;
   const shortURL = req.params.shortURL;
   const urlsOfUser =
     urlDatabase[shortURL] && urlDatabase[shortURL].userID === userID;
