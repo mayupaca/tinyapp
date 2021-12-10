@@ -4,10 +4,12 @@ const PORT = 8080; // default port 8080
 // "view engine" プロパティはどのテンプレートエンジンを使うかの指定を行うプロパティ
 app.set("view engine", "ejs");
 
-const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
+const bcrypt = require("bcryptjs");
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
+
 
 const users = {
   "userRandomID": {
@@ -21,7 +23,6 @@ const users = {
     password: "dishwasher-funk"
   }
 };
-
 
 const urlDatabase = {
   b6UTxQ: {
