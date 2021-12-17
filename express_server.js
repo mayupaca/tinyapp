@@ -30,6 +30,11 @@ const users = {
     email: "user2@example.com",
     password: bcrypt.hashSync(process.env.USER_RANDOM2_ID, salt),
   },
+  user3RandomID: {
+    id: "user3RandomID",
+    email: "user3@example.com",
+    password: "hello",
+  },
 };
 
 users.user2RandomID.id
@@ -37,7 +42,7 @@ users.user2RandomID.id
 const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
-    userID: "aJ48lW",
+    userID: "user3RandomID",
   },
   i3BoGr: {
     longURL: "https://www.google.ca",
@@ -54,20 +59,25 @@ const generateRandomString = function () {
   return randStr;
 };
 
-const urlsForUserId = function (id) {
+const urlsForUserId = function (urlDatabase, id) {
   const result = {};
   for (let shortURL in urlDatabase) {
+    console.log("wow", shortURL)
     const urlObj = urlDatabase[shortURL];
+  console.log("hey", urlObj);
+
     if (urlObj.userID === id) {
-      result[shortURL] = urlObj;
+      result[shortURL] = urlDatabase[shortURL];
     }
   }
+  console.log("yay", result);
   return result;
 };
+urlsForUserId(urlDatabase, "user3RandomID");
+
 
 const findExistingUser = function (email) {
   for (const user in users) {
-    console.log(users[user]);
     if (users[user].email === email) {
       return user;
     }
@@ -96,26 +106,24 @@ app.post("/register", (req, res) => {
   req.session.user_id = newUserId;
   // res.cookie("user_id", newUserId, { maxAge: 60000, httpOnly: false });
   // ("key", value, { maxAge: 60000, httpOnly: false })
-  console.log(users[newUserId]);
   res.redirect("/urls");
 });
 // users[id].id  => access users[id] value
 app.post('/login', (req, res) => {
   const email = req.body.email;
-  const password = req.body.password; 
+  const password = bcrypt.compare(req.body.password); 
   const user = findExistingUser(email);
 
   if (!user) {
     return res.status(403).send("a user with that email doesn't exist");
   }
   
-  if (!bcrypt.compareSync(password, user.password)) {
+  if (!bcrypt.compare(password, user.password)) {
     return res.status(403).send("your password doesn't match");
   }
 
-  req.session.user_id = user_id;
+  req.session.user_id = user;
   res.redirect("/urls");
-  console.log(req.body)
 });
 
 app.post("/logout", (req, res) => {
@@ -133,7 +141,6 @@ app.post("/urls", (req, res) => {
     longURL: longURL,
     userID: userID
   };
-  console.log(urlDatabase);
   res.redirect(`/urls/${shortURL}`); 
 });
 
@@ -147,11 +154,23 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   }
 });
 
+app.post("/urls/:shortURL", (req, res) => {
+  const userID = req.session.user_id;
+  const userUrls = urlsForUserId(urlDatabase, userID);
+  console.log("hello", req.session, req.params.shortURL, userUrls);
+  if (userUrls[req.params.shortURL]) {
+    urlDatabase[req.params.shortURL].longURL = req.body.longURL;
+    res.redirect('/urls');
+  } else {
+    res.status(401).send("You can not edit this short URL!");
+  }
+});
+
 app.get("/urls", (req, res) => {
   const userID = req.session.user_id;
   const templateVars = {
     user: users[userID],
-    urls: urlsForUserId(userID),
+    urls: urlsForUserId(urlDatabase, userID),
   };
   res.render("urls_index", templateVars);
 });
